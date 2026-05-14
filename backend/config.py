@@ -34,6 +34,10 @@ MODEL_CONFIG_PATH = "data/model_config.json"
 API_KEY_CONFIG_PATH = "data/openrouter_api_key.json"
 
 
+def is_vercel_runtime():
+    return os.getenv("VERCEL") == "1" or os.getenv("VERCEL_ENV") is not None
+
+
 def get_openrouter_api_key():
     """Return OpenRouter API key from env first, then editable local config."""
     env_key = os.getenv("OPENROUTER_API_KEY")
@@ -133,6 +137,8 @@ def save_user_openrouter_api_key(api_key, user_id=db.DEFAULT_USER_ID):
             )
             conn.commit()
         return get_user_api_key_config(user_id)
+    if is_vercel_runtime():
+        raise RuntimeError("DATABASE_URL or POSTGRES_URL is required to save API keys in production.")
     return save_openrouter_api_key(api_key)
 
 
@@ -194,6 +200,8 @@ def save_model_config(council_models, chairman_model, title_model=None, user_id=
     if db.enabled():
         db.save_model_config(user_id, clean_council, chairman_model, config["title_model"])
         return config
+    if is_vercel_runtime():
+        raise RuntimeError("DATABASE_URL or POSTGRES_URL is required to save model settings in production.")
     with open(MODEL_CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
     return config

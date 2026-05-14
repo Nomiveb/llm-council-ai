@@ -10,7 +10,17 @@ import db
 from config import DATA_DIR
 
 
+def is_vercel_runtime():
+    return os.getenv("VERCEL") == "1" or os.getenv("VERCEL_ENV") is not None
+
+
+def require_writable_local_storage():
+    if is_vercel_runtime():
+        raise RuntimeError("DATABASE_URL or POSTGRES_URL is required for production storage.")
+
+
 def ensure_data_dir():
+    require_writable_local_storage()
     Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 
@@ -46,6 +56,7 @@ def get_conversation(conversation_id: str, user_id: str = db.DEFAULT_USER_ID) ->
 
 
 def save_conversation(conversation: Dict[str, Any]):
+    require_writable_local_storage()
     ensure_data_dir()
     with open(get_conversation_path(conversation["id"]), "w", encoding="utf-8") as f:
         json.dump(conversation, f, indent=2)

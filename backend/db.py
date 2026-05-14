@@ -10,7 +10,15 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("POSTGRES_URL")
+    or os.getenv("POSTGRES_PRISMA_URL")
+    or os.getenv("POSTGRES_URL_NON_POOLING")
+    or os.getenv("DATABASE_POSTGRES_URL")
+    or os.getenv("DATABASE_POSTGRES_PRISMA_URL")
+    or os.getenv("DATABASE_POSTGRES_URL_NON_POOLING")
+)
 DEFAULT_USER_ID = "local-dev-user"
 
 

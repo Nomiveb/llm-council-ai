@@ -65,7 +65,8 @@ export const api = {
       body: JSON.stringify({ openrouter_api_key: openrouterApiKey }),
     });
     if (!response.ok) {
-      throw new Error('Failed to update API key');
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail || 'Failed to update API key');
     }
     return response.json();
   },

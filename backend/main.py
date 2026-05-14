@@ -126,7 +126,10 @@ async def read_api_key_config(request: Request):
 @app.put("/api/api-key-config")
 async def update_api_key_config(payload: ApiKeyRequest, request: Request):
     """Update OpenRouter API key used when env key is not set."""
-    return save_user_openrouter_api_key(payload.openrouter_api_key, current_user_id(request))
+    try:
+        return save_user_openrouter_api_key(payload.openrouter_api_key, current_user_id(request))
+    except RuntimeError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.put("/api/model-config")
@@ -141,6 +144,8 @@ async def update_model_config(payload: ModelConfigRequest, request: Request):
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
+    except RuntimeError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.get("/api/openrouter-models")
