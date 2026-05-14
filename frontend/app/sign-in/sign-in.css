@@ -1,0 +1,47 @@
+.sign-in-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  padding: 24px;
+}
+
+.sign-in-card {
+  width: min(420px, 100%);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  background: var(--bg);
+}
+
+.sign-in-card h1 {
+  margin: 16px 0 8px;
+  font-size: 24px;
+}
+
+.sign-in-card p {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.sign-in-card button {
+  width: 100%;
+  height: 42px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--text);
+  color: var(--bg);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+}
+
+.sign-in-warning {
+  border: 1px solid var(--warning);
+  border-radius: 9px;
+  padding: 12px;
+  color: var(--warning);
+  background: var(--warning-soft);
+  font-size: 13px;
+}

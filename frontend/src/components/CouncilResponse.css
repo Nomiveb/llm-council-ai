@@ -1,0 +1,259 @@
+.council-response {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.council-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stage-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stage-badge {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 1px 7px;
+  text-transform: none;
+}
+
+.model-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 1px;
+}
+
+.model-tab {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  border-radius: 7px;
+  height: 30px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.model-tab:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.model-tab.active {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.response-panel,
+.final-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.final-panel {
+  border-color: var(--border-strong);
+}
+
+.panel-meta {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.review-note {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 9px 11px;
+}
+
+.ranking-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ranking-table th,
+.ranking-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.ranking-table th {
+  background: var(--soft);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ranking-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.parsed-ranking-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px 0;
+}
+
+.parsed-ranking-row span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.loading-pipeline {
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pipeline-now {
+  min-height: 62px;
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+}
+
+.pipeline-now small {
+  display: block;
+  color: color-mix(in srgb, var(--bg) 72%, transparent);
+  font-size: 11px;
+  font-weight: 650;
+  margin-bottom: 2px;
+}
+
+.pipeline-now strong {
+  display: block;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.pulse-ring {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--bg) 45%, transparent);
+  animation: stagePulse 1.25s ease-out infinite;
+}
+
+.pipeline-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.pipeline-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pipeline-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pipeline-dot.active {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.pipeline-dot.done {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.pipeline-row strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.pipeline-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.pipeline-row em {
+  display: block;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-style: normal;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 680px;
+}
+
+@keyframes stagePulse {
+  to {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+.compact-markdown {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.62;
+  padding: 14px;
+}

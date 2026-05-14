@@ -2,16 +2,78 @@
  * API client for the LLM Council backend.
  */
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = '/api';
+
+const fetchWithSession = (url, options = {}) =>
+  fetch(url, {
+    credentials: 'include',
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+    },
+  });
 
 export const api = {
   /**
    * List all conversations.
    */
   async listConversations() {
-    const response = await fetch(`${API_BASE}/api/conversations`);
+    const response = await fetchWithSession(`${API_BASE}/conversations`);
     if (!response.ok) {
       throw new Error('Failed to list conversations');
+    }
+    return response.json();
+  },
+
+  async getModelConfig() {
+    const response = await fetchWithSession(`${API_BASE}/model-config`);
+    if (!response.ok) {
+      throw new Error('Failed to load model config');
+    }
+    return response.json();
+  },
+
+  async updateModelConfig(config) {
+    const response = await fetchWithSession(`${API_BASE}/model-config`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail || 'Failed to update model config');
+    }
+    return response.json();
+  },
+
+  async getApiKeyConfig() {
+    const response = await fetchWithSession(`${API_BASE}/api-key-config`);
+    if (!response.ok) {
+      throw new Error('Failed to load API key config');
+    }
+    return response.json();
+  },
+
+  async updateApiKeyConfig(openrouterApiKey) {
+    const response = await fetchWithSession(`${API_BASE}/api-key-config`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ openrouter_api_key: openrouterApiKey }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update API key');
+    }
+    return response.json();
+  },
+
+  async listOpenRouterModels() {
+    const response = await fetchWithSession(`${API_BASE}/openrouter-models`);
+    if (!response.ok) {
+      throw new Error('Failed to load OpenRouter models');
     }
     return response.json();
   },
@@ -20,7 +82,7 @@ export const api = {
    * Create a new conversation.
    */
   async createConversation() {
-    const response = await fetch(`${API_BASE}/api/conversations`, {
+    const response = await fetchWithSession(`${API_BASE}/conversations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,11 +99,55 @@ export const api = {
    * Get a specific conversation.
    */
   async getConversation(conversationId) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}`
+    const response = await fetchWithSession(
+      `${API_BASE}/conversations/${conversationId}`
     );
     if (!response.ok) {
       throw new Error('Failed to get conversation');
+    }
+    return response.json();
+  },
+
+  async deleteConversation(conversationId) {
+    const response = await fetchWithSession(`${API_BASE}/conversations/${conversationId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to delete conversation');
+    }
+    return response.json();
+  },
+
+  async deleteConversations(conversationIds) {
+    const response = await fetchWithSession(`${API_BASE}/conversations/delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ conversation_ids: conversationIds }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to delete conversations');
+    }
+    return response.json();
+  },
+
+  async deleteEmptyConversations(exceptId = null) {
+    const url = exceptId
+      ? `${API_BASE}/conversations/delete-empty?except_id=${encodeURIComponent(exceptId)}`
+      : `${API_BASE}/conversations/delete-empty`;
+    const response = await fetchWithSession(url, { method: 'POST' });
+    if (!response.ok) {
+      throw new Error('Failed to delete empty conversations');
+    }
+    return response.json();
+  },
+
+  async listLogs(conversationId = null) {
+    const suffix = conversationId ? `?conversation_id=${encodeURIComponent(conversationId)}` : '';
+    const response = await fetchWithSession(`${API_BASE}/logs${suffix}`);
+    if (!response.ok) {
+      throw new Error('Failed to load logs');
     }
     return response.json();
   },
@@ -50,8 +156,8 @@ export const api = {
    * Send a message in a conversation.
    */
   async sendMessage(conversationId, content) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/message`,
+    const response = await fetchWithSession(
+      `${API_BASE}/conversations/${conversationId}/message`,
       {
         method: 'POST',
         headers: {
@@ -74,8 +180,8 @@ export const api = {
    * @returns {Promise<void>}
    */
   async sendMessageStream(conversationId, content, onEvent) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/message/stream`,
+    const response = await fetchWithSession(
+      `${API_BASE}/conversations/${conversationId}/message/stream`,
       {
         method: 'POST',
         headers: {

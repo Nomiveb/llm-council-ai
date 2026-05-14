@@ -1,9 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+"use client";
+
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import Stage1 from './Stage1';
-import Stage2 from './Stage2';
-import Stage3 from './Stage3';
+import CouncilResponse from './CouncilResponse';
 import './ChatInterface.css';
+
+const SUGGESTED_PROMPTS = [
+  'Compare RAG vs fine-tuning for enterprise knowledge bases',
+  'How should I evaluate LLM output quality at scale?',
+  'What are the risks of relying on a single model for research?',
+];
 
 export default function ChatInterface({
   conversation,
@@ -12,134 +18,123 @@ export default function ChatInterface({
 }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const textareaRef = useRef(null);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [conversation]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [conversation, isLoading]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (input.trim() && !isLoading) {
-      onSendMessage(input);
-      setInput('');
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 190)}px`;
+  }, [input]);
+
+  const canSend = Boolean(input.trim()) && !isLoading && conversation;
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (!canSend) return;
+    onSendMessage(input);
+    setInput('');
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit(event);
     }
   };
 
-  const handleKeyDown = (e) => {
-    // Submit on Enter (without Shift)
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
-
-  if (!conversation) {
-    return (
-      <div className="chat-interface">
-        <div className="empty-state">
-          <h2>Welcome to LLM Council</h2>
-          <p>Create a new conversation to get started</p>
-        </div>
-      </div>
-    );
-  }
+  const showEmpty = !conversation || conversation.messages.length === 0;
 
   return (
-    <div className="chat-interface">
+    <main className="chat-interface">
+      <header className="mobile-topbar">
+        <div className="brand-mark">C</div>
+        <span>LLM Council</span>
+      </header>
+
       <div className="messages-container">
-        {conversation.messages.length === 0 ? (
-          <div className="empty-state">
-            <h2>Start a conversation</h2>
-            <p>Ask a question to consult the LLM Council</p>
-          </div>
-        ) : (
-          conversation.messages.map((msg, index) => (
-            <div key={index} className="message-group">
-              {msg.role === 'user' ? (
-                <div className="user-message">
-                  <div className="message-label">You</div>
-                  <div className="message-content">
-                    <div className="markdown-content">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="assistant-message">
-                  <div className="message-label">LLM Council</div>
-
-                  {/* Stage 1 */}
-                  {msg.loading?.stage1 && (
-                    <div className="stage-loading">
-                      <div className="spinner"></div>
-                      <span>Running Stage 1: Collecting individual responses...</span>
-                    </div>
-                  )}
-                  {msg.stage1 && <Stage1 responses={msg.stage1} />}
-
-                  {/* Stage 2 */}
-                  {msg.loading?.stage2 && (
-                    <div className="stage-loading">
-                      <div className="spinner"></div>
-                      <span>Running Stage 2: Peer rankings...</span>
-                    </div>
-                  )}
-                  {msg.stage2 && (
-                    <Stage2
-                      rankings={msg.stage2}
-                      labelToModel={msg.metadata?.label_to_model}
-                      aggregateRankings={msg.metadata?.aggregate_rankings}
-                    />
-                  )}
-
-                  {/* Stage 3 */}
-                  {msg.loading?.stage3 && (
-                    <div className="stage-loading">
-                      <div className="spinner"></div>
-                      <span>Running Stage 3: Final synthesis...</span>
-                    </div>
-                  )}
-                  {msg.stage3 && <Stage3 finalResponse={msg.stage3} />}
+        <div className="thread">
+          {showEmpty ? (
+            <div className="empty-state">
+              <div className="empty-kicker">Council workspace</div>
+              <h2>{conversation ? 'Start a conversation' : 'Create a conversation'}</h2>
+              <p>
+                Ask once, compare individual model answers, inspect peer review,
+                then read the chairman synthesis.
+              </p>
+              {conversation && (
+                <div className="prompt-grid">
+                  {SUGGESTED_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      onClick={() => setInput(prompt)}
+                      className="prompt-chip"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
-          ))
-        )}
-
-        {isLoading && (
-          <div className="loading-indicator">
-            <div className="spinner"></div>
-            <span>Consulting the council...</span>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
+          ) : (
+            conversation.messages.map((message, index) => (
+              <div key={index} className="message-group">
+                {message.role === 'user' ? (
+                  <div className="user-message">
+                    <div className="user-bubble">
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="assistant-message">
+                    <div className="assistant-label">
+                      <span className="assistant-mark">C</span>
+                      <span>Council</span>
+                    </div>
+                    <CouncilResponse message={message} />
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      {conversation.messages.length === 0 && (
-        <form className="input-form" onSubmit={handleSubmit}>
+      <form className="input-form" onSubmit={handleSubmit}>
+        <div className="composer-shell">
           <textarea
+            ref={textareaRef}
             className="message-input"
-            placeholder="Ask your question... (Shift+Enter for new line, Enter to send)"
+            placeholder={
+              conversation
+                ? 'Ask the council a question...'
+                : 'Create a conversation first'
+            }
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isLoading}
-            rows={3}
+            disabled={isLoading || !conversation}
+            rows={1}
           />
           <button
             type="submit"
             className="send-button"
-            disabled={!input.trim() || isLoading}
+            disabled={!canSend}
+            aria-label="Send"
           >
-            Send
+            {isLoading ? '...' : '↑'}
           </button>
-        </form>
-      )}
-    </div>
+        </div>
+        <div className="composer-meta">
+          <span />
+          <span>Shift+Enter for newline</span>
+        </div>
+      </form>
+    </main>
   );
 }

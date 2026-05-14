@@ -1,17 +1,47 @@
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --bg: #ffffff;
+  --text: #171717;
+  --muted: #6f6f6f;
+  --soft: #f5f5f5;
+  --sidebar-bg: #fafafa;
+  --border: #e6e6e6;
+  --border-strong: #bdbdbd;
+  --danger: #b42318;
+  --danger-soft: #fee4e2;
+  --warning: #92400e;
+  --warning-soft: #fff7ed;
+  --success: #20945f;
+  --chairman: #7057ff;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
+  color: var(--text);
+  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f0f0f;
+  --text: #f2f2f2;
+  --muted: #a3a3a3;
+  --soft: #1c1c1c;
+  --sidebar-bg: #121212;
+  --border: #2b2b2b;
+  --border-strong: #555555;
+  --danger: #ff8a80;
+  --danger-soft: #351716;
+  --warning: #f6c177;
+  --warning-soft: #2d2115;
+  --success: #4ade80;
+  --chairman: #9b8cff;
+}
+
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
@@ -19,7 +49,13 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
 }
 
 #root {
@@ -28,13 +64,8 @@ body {
   overflow: hidden;
 }
 
-/* Global markdown styling */
-.markdown-content {
-  padding: 12px;
-}
-
 .markdown-content p {
-  margin: 0 0 12px 0;
+  margin: 0 0 12px;
 }
 
 .markdown-content p:last-child {
@@ -47,7 +78,9 @@ body {
 .markdown-content h4,
 .markdown-content h5,
 .markdown-content h6 {
-  margin: 16px 0 8px 0;
+  margin: 18px 0 8px;
+  color: var(--text);
+  line-height: 1.25;
 }
 
 .markdown-content h1:first-child,
@@ -61,8 +94,8 @@ body {
 
 .markdown-content ul,
 .markdown-content ol {
-  margin: 0 0 12px 0;
-  padding-left: 24px;
+  margin: 0 0 12px;
+  padding-left: 22px;
 }
 
 .markdown-content li {
@@ -70,29 +103,50 @@ body {
 }
 
 .markdown-content pre {
-  background: #f5f5f5;
+  background: var(--soft);
+  border: 1px solid var(--border);
   padding: 12px;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow-x: auto;
-  margin: 0 0 12px 0;
+  margin: 0 0 12px;
 }
 
 .markdown-content code {
-  background: #f5f5f5;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: monospace;
+  background: var(--soft);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 0.9em;
 }
 
 .markdown-content pre code {
   background: none;
+  border: 0;
   padding: 0;
 }
 
 .markdown-content blockquote {
-  margin: 0 0 12px 0;
-  padding-left: 16px;
-  border-left: 4px solid #ddd;
-  color: #666;
+  margin: 0 0 12px;
+  padding-left: 14px;
+  border-left: 3px solid var(--border-strong);
+  color: var(--muted);
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  text-align: left;
+}
+
+.markdown-content th {
+  background: var(--soft);
 }

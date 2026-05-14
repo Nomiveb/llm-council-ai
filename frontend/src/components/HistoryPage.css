@@ -1,0 +1,164 @@
+.history-page {
+  flex: 1;
+  height: 100vh;
+  overflow: auto;
+  background: var(--bg);
+  padding: 28px;
+}
+
+.history-header {
+  max-width: 980px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.history-header p {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.history-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.history-toolbar {
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+}
+
+.history-toolbar input {
+  min-width: 0;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  padding: 0 12px;
+}
+
+.history-toolbar input:focus {
+  border-color: var(--border-strong);
+}
+
+.history-secondary-btn,
+.history-danger-btn {
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 0 12px;
+}
+
+.history-secondary-btn:hover {
+  background: var(--soft);
+  border-color: var(--border-strong);
+}
+
+.history-danger-btn {
+  color: var(--danger);
+}
+
+.history-danger-btn:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.history-count {
+  max-width: 980px;
+  margin: 12px auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.history-list {
+  max-width: 980px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.history-row:last-child {
+  border-bottom: 0;
+}
+
+.history-row > input {
+  justify-self: center;
+}
+
+.history-row > button {
+  min-width: 0;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  padding: 12px 14px;
+}
+
+.history-row > button:hover {
+  background: var(--soft);
+}
+
+.history-row span,
+.history-row small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-row span {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.history-row small {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.history-empty {
+  padding: 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .history-page {
+    padding: 18px 14px;
+  }
+
+  .history-toolbar {
+    grid-template-columns: 1fr;
+  }
+}

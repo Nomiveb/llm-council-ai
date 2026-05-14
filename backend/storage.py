@@ -1,129 +1,123 @@
-"""JSON-based storage for conversations."""
+"""Conversation storage with Postgres production backend and JSON local fallback."""
 
 import json
 import os
 from datetime import datetime
-from typing import List, Dict, Any, Optional
 from pathlib import Path
-from .config import DATA_DIR
+from typing import Any, Dict, List, Optional
+
+import db
+from config import DATA_DIR
 
 
 def ensure_data_dir():
-    """Ensure the data directory exists."""
     Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 
 def get_conversation_path(conversation_id: str) -> str:
-    """Get the file path for a conversation."""
     return os.path.join(DATA_DIR, f"{conversation_id}.json")
 
 
-def create_conversation(conversation_id: str) -> Dict[str, Any]:
-    """
-    Create a new conversation.
+def create_conversation(conversation_id: str, user_id: str = db.DEFAULT_USER_ID) -> Dict[str, Any]:
+    if db.enabled():
+        return db.create_conversation(conversation_id, user_id)
 
-    Args:
-        conversation_id: Unique identifier for the conversation
-
-    Returns:
-        New conversation dict
-    """
     ensure_data_dir()
-
     conversation = {
         "id": conversation_id,
         "created_at": datetime.utcnow().isoformat(),
         "title": "New Conversation",
-        "messages": []
+        "messages": [],
     }
-
-    # Save to file
-    path = get_conversation_path(conversation_id)
-    with open(path, 'w') as f:
+    with open(get_conversation_path(conversation_id), "w", encoding="utf-8") as f:
         json.dump(conversation, f, indent=2)
-
     return conversation
 
 
-def get_conversation(conversation_id: str) -> Optional[Dict[str, Any]]:
-    """
-    Load a conversation from storage.
+def get_conversation(conversation_id: str, user_id: str = db.DEFAULT_USER_ID) -> Optional[Dict[str, Any]]:
+    if db.enabled():
+        return db.get_conversation(conversation_id, user_id)
 
-    Args:
-        conversation_id: Unique identifier for the conversation
-
-    Returns:
-        Conversation dict or None if not found
-    """
     path = get_conversation_path(conversation_id)
-
     if not os.path.exists(path):
         return None
-
-    with open(path, 'r') as f:
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def save_conversation(conversation: Dict[str, Any]):
-    """
-    Save a conversation to storage.
-
-    Args:
-        conversation: Conversation dict to save
-    """
     ensure_data_dir()
-
-    path = get_conversation_path(conversation['id'])
-    with open(path, 'w') as f:
+    with open(get_conversation_path(conversation["id"]), "w", encoding="utf-8") as f:
         json.dump(conversation, f, indent=2)
 
 
-def list_conversations() -> List[Dict[str, Any]]:
-    """
-    List all conversations (metadata only).
+def list_conversations(user_id: str = db.DEFAULT_USER_ID) -> List[Dict[str, Any]]:
+    if db.enabled():
+        return db.list_conversations(user_id)
 
-    Returns:
-        List of conversation metadata dicts
-    """
     ensure_data_dir()
-
     conversations = []
     for filename in os.listdir(DATA_DIR):
-        if filename.endswith('.json'):
-            path = os.path.join(DATA_DIR, filename)
-            with open(path, 'r') as f:
-                data = json.load(f)
-                # Return metadata only
-                conversations.append({
-                    "id": data["id"],
-                    "created_at": data["created_at"],
-                    "title": data.get("title", "New Conversation"),
-                    "message_count": len(data["messages"])
-                })
-
-    # Sort by creation time, newest first
+        if not filename.endswith(".json"):
+            continue
+        with open(os.path.join(DATA_DIR, filename), "r", encoding="utf-8") as f:
+            data = json.load(f)
+        conversations.append({
+            "id": data["id"],
+            "created_at": data["created_at"],
+            "title": data.get("title", "New Conversation"),
+            "message_count": len(data["messages"]),
+        })
     conversations.sort(key=lambda x: x["created_at"], reverse=True)
-
     return conversations
 
 
-def add_user_message(conversation_id: str, content: str):
-    """
-    Add a user message to a conversation.
+def delete_conversation(conversation_id: str, user_id: str = db.DEFAULT_USER_ID) -> bool:
+    if db.enabled():
+        return db.delete_conversation(conversation_id, user_id)
 
-    Args:
-        conversation_id: Conversation identifier
-        content: User message content
-    """
-    conversation = get_conversation(conversation_id)
+    path = get_conversation_path(conversation_id)
+    if not os.path.exists(path):
+        return False
+    os.remove(path)
+    return True
+
+
+def delete_conversations(conversation_ids: List[str], user_id: str = db.DEFAULT_USER_ID) -> int:
+    if db.enabled():
+        return db.delete_conversations(conversation_ids, user_id)
+
+    deleted = 0
+    for conversation_id in conversation_ids:
+        if delete_conversation(conversation_id, user_id):
+            deleted += 1
+    return deleted
+
+
+def delete_empty_conversations(except_id: str | None = None, user_id: str = db.DEFAULT_USER_ID) -> int:
+    if db.enabled():
+        items = list_conversations(user_id)
+        return delete_conversations(
+            [item["id"] for item in items if item["id"] != except_id and item.get("message_count", 0) == 0],
+            user_id,
+        )
+
+    deleted = 0
+    for item in list_conversations(user_id):
+        if item["id"] != except_id and item.get("message_count", 0) == 0:
+            if delete_conversation(item["id"], user_id):
+                deleted += 1
+    return deleted
+
+
+def add_user_message(conversation_id: str, content: str, user_id: str = db.DEFAULT_USER_ID):
+    if db.enabled():
+        return db.add_user_message(conversation_id, user_id, content)
+
+    conversation = get_conversation(conversation_id, user_id)
     if conversation is None:
         raise ValueError(f"Conversation {conversation_id} not found")
-
-    conversation["messages"].append({
-        "role": "user",
-        "content": content
-    })
-
+    conversation["messages"].append({"role": "user", "content": content})
     save_conversation(conversation)
 
 
@@ -131,42 +125,29 @@ def add_assistant_message(
     conversation_id: str,
     stage1: List[Dict[str, Any]],
     stage2: List[Dict[str, Any]],
-    stage3: Dict[str, Any]
+    stage3: Dict[str, Any],
+    user_id: str = db.DEFAULT_USER_ID,
+    metadata: Dict[str, Any] | None = None,
 ):
-    """
-    Add an assistant message with all 3 stages to a conversation.
+    if db.enabled():
+        return db.add_assistant_message(conversation_id, user_id, stage1, stage2, stage3, metadata)
 
-    Args:
-        conversation_id: Conversation identifier
-        stage1: List of individual model responses
-        stage2: List of model rankings
-        stage3: Final synthesized response
-    """
-    conversation = get_conversation(conversation_id)
+    conversation = get_conversation(conversation_id, user_id)
     if conversation is None:
         raise ValueError(f"Conversation {conversation_id} not found")
-
-    conversation["messages"].append({
-        "role": "assistant",
-        "stage1": stage1,
-        "stage2": stage2,
-        "stage3": stage3
-    })
-
+    message = {"role": "assistant", "stage1": stage1, "stage2": stage2, "stage3": stage3}
+    if metadata:
+        message["metadata"] = metadata
+    conversation["messages"].append(message)
     save_conversation(conversation)
 
 
-def update_conversation_title(conversation_id: str, title: str):
-    """
-    Update the title of a conversation.
+def update_conversation_title(conversation_id: str, title: str, user_id: str = db.DEFAULT_USER_ID):
+    if db.enabled():
+        return db.update_conversation_title(conversation_id, user_id, title)
 
-    Args:
-        conversation_id: Conversation identifier
-        title: New title for the conversation
-    """
-    conversation = get_conversation(conversation_id)
+    conversation = get_conversation(conversation_id, user_id)
     if conversation is None:
         raise ValueError(f"Conversation {conversation_id} not found")
-
     conversation["title"] = title
     save_conversation(conversation)

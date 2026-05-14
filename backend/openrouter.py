@@ -2,13 +2,16 @@
 
 import httpx
 from typing import List, Dict, Any, Optional
-from .config import OPENROUTER_API_KEY, OPENROUTER_API_URL
+from config import OPENROUTER_API_URL, get_user_openrouter_api_key
+
+OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 
 
 async def query_model(
     model: str,
     messages: List[Dict[str, str]],
-    timeout: float = 120.0
+    timeout: float = 120.0,
+    user_id: str = "local-dev-user",
 ) -> Optional[Dict[str, Any]]:
     """
     Query a single model via OpenRouter API.
@@ -22,7 +25,7 @@ async def query_model(
         Response dict with 'content' and optional 'reasoning_details', or None if failed
     """
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {get_user_openrouter_api_key(user_id)}",
         "Content-Type": "application/json",
     }
 
@@ -55,7 +58,8 @@ async def query_model(
 
 async def query_models_parallel(
     models: List[str],
-    messages: List[Dict[str, str]]
+    messages: List[Dict[str, str]],
+    user_id: str = "local-dev-user",
 ) -> Dict[str, Optional[Dict[str, Any]]]:
     """
     Query multiple models in parallel.
@@ -70,10 +74,31 @@ async def query_models_parallel(
     import asyncio
 
     # Create tasks for all models
-    tasks = [query_model(model, messages) for model in models]
+    tasks = [query_model(model, messages, user_id=user_id) for model in models]
 
     # Wait for all to complete
     responses = await asyncio.gather(*tasks)
 
     # Map models to their responses
     return {model: response for model, response in zip(models, responses)}
+
+
+async def list_openrouter_models(user_id: str = "local-dev-user") -> List[Dict[str, Any]]:
+    """Fetch model ids and names available from OpenRouter."""
+    api_key = get_user_openrouter_api_key(user_id)
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.get(OPENROUTER_MODELS_URL, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+    models = []
+    for item in data.get("data", []):
+        model_id = item.get("id")
+        if not model_id:
+            continue
+        models.append({
+            "id": model_id,
+            "name": item.get("name") or model_id,
+            "context_length": item.get("context_length"),
+        })
+    return sorted(models, key=lambda model: model["id"])
