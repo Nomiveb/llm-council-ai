@@ -191,7 +191,6 @@ def save_model_config(council_models, chairman_model, title_model=None, user_id=
     if not chairman_model:
         raise ValueError("Chairman model is required.")
 
-    os.makedirs(os.path.dirname(MODEL_CONFIG_PATH), exist_ok=True)
     config = {
         "council_models": clean_council,
         "chairman_model": chairman_model,
@@ -202,6 +201,7 @@ def save_model_config(council_models, chairman_model, title_model=None, user_id=
         return config
     if is_vercel_runtime():
         raise RuntimeError("DATABASE_URL or POSTGRES_URL is required to save model settings in production.")
+    os.makedirs(os.path.dirname(MODEL_CONFIG_PATH), exist_ok=True)
     with open(MODEL_CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
     return config
