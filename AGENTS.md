@@ -1,4 +1,4 @@
-# CLAUDE.md - Technical Notes for LLM Council
+# AGENTS.md - Technical Notes for LLM Council
 
 This file contains technical details, architectural decisions, and important implementation notes for future development sessions.
 
@@ -13,7 +13,8 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
 **`config.py`**
 - Contains `COUNCIL_MODELS` (list of OpenRouter model identifiers)
 - Contains `CHAIRMAN_MODEL` (model that synthesizes final answer)
-- Uses environment variable `OPENROUTER_API_KEY` from `.env`
+- Contains `TITLE_MODEL` (model that generates conversation titles)
+- Uses per-user encrypted OpenRouter API keys when `DATABASE_URL` is configured, with `OPENROUTER_API_KEY` as an optional fallback
 - Backend runs on **port 8001** (NOT 8000 - user had another app on 8000)
 
 **`openrouter.py`**
@@ -35,48 +36,42 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
 - `calculate_aggregate_rankings()`: Computes average rank position across all peer evaluations
 
 **`storage.py`**
-- JSON-based conversation storage in `data/conversations/`
+- Neon Postgres storage when `DATABASE_URL` is configured, JSON fallback in `data/conversations/`
 - Each conversation: `{id, created_at, messages[]}`
 - Assistant messages contain: `{role, stage1, stage2, stage3}`
-- Note: metadata (label_to_model, aggregate_rankings) is NOT persisted to storage, only returned via API
+- Metadata such as `label_to_model`, `aggregate_rankings`, and `model_config` is persisted for assistant messages in Postgres
 
 **`main.py`**
-- FastAPI app with CORS enabled for localhost:5173 and localhost:3000
+- FastAPI app with CORS enabled for local development
 - POST `/api/conversations/{id}/message` returns metadata in addition to stages
 - Metadata includes: label_to_model mapping and aggregate_rankings
+- Production requests should go through the Next.js app `/api/*` proxy/rewrite, which forwards `x-user-id` and `x-internal-api-secret` to the FastAPI service
 
-### Frontend Structure (`frontend/src/`)
+### Frontend Structure
+
+**`frontend/app/`**
+- Next.js App Router pages and API route handlers
+- Auth.js routes live at `frontend/app/api/auth/[...nextauth]/route.js`
+- Production API traffic is routed through `frontend/proxy.js`
 
 **`App.jsx`**
 - Main orchestration: manages conversations list and current conversation
 - Handles message sending and metadata storage
-- Important: metadata is stored in the UI state for display but not persisted to backend JSON
+- Metadata is stored in UI state during streaming and persisted in Postgres when `DATABASE_URL` is configured
 
 **`components/ChatInterface.jsx`**
 - Multiline textarea (3 rows, resizable)
 - Enter to send, Shift+Enter for new line
 - User messages wrapped in markdown-content class for padding
 
-**`components/Stage1.jsx`**
-- Tab view of individual model responses
-- ReactMarkdown rendering with markdown-content wrapper
-
-**`components/Stage2.jsx`**
-- **Critical Feature**: Tab view showing RAW evaluation text from each model
-- De-anonymization happens CLIENT-SIDE for display (models receive anonymous labels)
-- Shows "Extracted Ranking" below each evaluation so users can validate parsing
-- Aggregate rankings shown with average position and vote count
-- Explanatory text clarifies that boldface model names are for readability only
-
-**`components/Stage3.jsx`**
-- Final synthesized answer from chairman
-- Green-tinted background (#f0fff0) to highlight conclusion
+**`components/CouncilResponse.jsx`**
+- Renders current stage, individual responses, peer review, and final answer
+- Expands anonymized peer-review labels back to model names for user readability
+- Shows aggregate rankings when present
 
 **Styling (`*.css`)**
-- Light mode theme (not dark mode)
-- Primary color: #4a90e2 (blue)
+- Light and dark theme support via CSS variables
 - Global markdown styling in `index.css` with `.markdown-content` class
-- 12px padding on all markdown content to prevent cluttered appearance
 
 ## Key Design Decisions
 
@@ -93,7 +88,7 @@ This strict format allows reliable parsing while still getting thoughtful evalua
 
 ### De-anonymization Strategy
 - Models receive: "Response A", "Response B", etc.
-- Backend creates mapping: `{"Response A": "openai/gpt-5.1", ...}`
+- Backend creates mapping: `{"Response A": "openai/gpt-5.5", ...}`
 - Frontend displays model names in **bold** for readability
 - Users see explanation that original evaluation used anonymous labels
 - This prevents bias while maintaining transparency
@@ -111,31 +106,32 @@ This strict format allows reliable parsing while still getting thoughtful evalua
 
 ## Important Implementation Details
 
-### Relative Imports
-All backend modules use relative imports (e.g., `from .config import ...`) not absolute imports. This is critical for Python's module system to work correctly when running as `python -m backend.main`.
+### Imports on Vercel
+Vercel's Python service imports the FastAPI entrypoint as `main.py`, so backend modules use absolute imports after `backend/main.py` inserts its directory into `sys.path`. Do not switch these back to package-relative imports without testing Vercel.
 
 ### Port Configuration
 - Backend: 8001 (changed from 8000 to avoid conflict)
-- Frontend: 5173 (Vite default)
+- Frontend: 3000 (Next.js default)
 - Update both `backend/main.py` and `frontend/src/api.js` if changing
 
 ### Markdown Rendering
 All ReactMarkdown components must be wrapped in `<div className="markdown-content">` for proper spacing. This class is defined globally in `index.css`.
 
 ### Model Configuration
-Models are hardcoded in `backend/config.py`. Chairman can be same or different from council members. The current default is Gemini as chairman per user preference.
+Defaults live in `backend/config.py`, but production users should change models in the site UI. Current defaults are:
+- Council: `openai/gpt-5.5`, `google/gemini-3.1-pro-preview`, `moonshotai/kimi-k2.6`, `x-ai/grok-4.3`
+- Final answer: `anthropic/claude-sonnet-4.6`
+- Title: `openai/gpt-5.4-nano`
 
 ## Common Gotchas
 
-1. **Module Import Errors**: Always run backend as `python -m backend.main` from project root, not from backend directory
+1. **Module Import Errors**: Production Vercel Python imports differ from local package execution; test both local compile and Vercel deploy logs
 2. **CORS Issues**: Frontend must match allowed origins in `main.py` CORS middleware
 3. **Ranking Parse Failures**: If models don't follow format, fallback regex extracts any "Response X" patterns in order
 4. **Missing Metadata**: Metadata is ephemeral (not persisted), only available in API responses
 
 ## Future Enhancement Ideas
 
-- Configurable council/chairman via UI instead of config file
-- Streaming responses instead of batch loading
 - Export conversations to markdown/PDF
 - Model performance analytics over time
 - Custom ranking criteria (not just accuracy/insight)

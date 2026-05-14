@@ -1,87 +1,99 @@
 # LLM Council
 
-![llmcouncil](header.jpg)
+Private multi-model review app built around OpenRouter. A user asks once, several models answer in parallel, the same models peer-review anonymized answers, and a final model writes the synthesis.
 
-The idea of this repo is that instead of asking a question to your favorite LLM provider (e.g. OpenAI GPT 5.1, Google Gemini 3.0 Pro, Anthropic Claude Sonnet 4.5, xAI Grok 4, eg.c), you can group them into your "LLM Council". This repo is a simple, local web app that essentially looks like ChatGPT except it uses OpenRouter to send your query to multiple LLMs, it then asks them to review and rank each other's work, and finally a Chairman LLM produces the final response.
+## Current Defaults
 
-In a bit more detail, here is what happens when you submit a query:
-
-1. **Stage 1: First opinions**. The user query is given to all LLMs individually, and the responses are collected. The individual responses are shown in a "tab view", so that the user can inspect them all one by one.
-2. **Stage 2: Review**. Each individual LLM is given the responses of the other LLMs. Under the hood, the LLM identities are anonymized so that the LLM can't play favorites when judging their outputs. The LLM is asked to rank them in accuracy and insight.
-3. **Stage 3: Final response**. The designated Chairman of the LLM Council takes all of the model's responses and compiles them into a single final answer that is presented to the user.
-
-## Vibe Code Alert
-
-This project was 99% vibe coded as a fun Saturday hack because I wanted to explore and evaluate a number of LLMs side by side in the process of [reading books together with LLMs](https://x.com/karpathy/status/1990577951671509438). It's nice and useful to see multiple responses side by side, and also the cross-opinions of all LLMs on each other's outputs. I'm not going to support it in any way, it's provided here as is for other people's inspiration and I don't intend to improve it. Code is ephemeral now and libraries are over, ask your LLM to change it in whatever way you like.
-
-## Setup
-
-### 1. Install Dependencies
-
-The project uses [uv](https://docs.astral.sh/uv/) for project management.
-
-**Backend:**
-```bash
-uv sync
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm install
-cd ..
-```
-
-### 2. Configure API Key
-
-Create a `.env` file in the project root:
-
-```bash
-OPENROUTER_API_KEY=sk-or-v1-...
-```
-
-Get your API key at [openrouter.ai](https://openrouter.ai/). Make sure to purchase the credits you need, or sign up for automatic top up.
-
-### 3. Configure Models (Optional)
-
-Edit `backend/config.py` to customize the council:
+New users start with these OpenRouter model ids:
 
 ```python
 COUNCIL_MODELS = [
-    "openai/gpt-5.1",
-    "google/gemini-3-pro-preview",
-    "anthropic/claude-sonnet-4.5",
-    "x-ai/grok-4",
+    "openai/gpt-5.5",
+    "google/gemini-3.1-pro-preview",
+    "moonshotai/kimi-k2.6",
+    "x-ai/grok-4.3",
 ]
 
-CHAIRMAN_MODEL = "google/gemini-3-pro-preview"
+CHAIRMAN_MODEL = "anthropic/claude-sonnet-4.6"
+TITLE_MODEL = "openai/gpt-5.4-nano"
 ```
 
-## Running the Application
+Users can change models in the app UI. The values are saved per user when `DATABASE_URL` is configured.
 
-**Option 1: Use the start script**
+## Production Setup
+
+Recommended flow:
+
+1. Push this folder to a private GitHub repository.
+2. Import that private repo into Vercel.
+3. Add the required Vercel environment variables.
+4. Connect a fresh Neon Postgres database to the Vercel project.
+
+Required Vercel env vars:
+
+```text
+AUTH_SECRET
+APP_SECRET
+INTERNAL_API_SECRET
+API_KEY_ENCRYPTION_SECRET
+AUTH_URL=https://llm-council-ai.vercel.app
+AUTH_GOOGLE_ID
+AUTH_GOOGLE_SECRET
+DATABASE_URL
+```
+
+Google OAuth callback URL:
+
+```text
+https://llm-council-ai.vercel.app/api/auth/callback/google
+```
+
+`DATABASE_URL` comes from Neon. Without it, production will not persist chat history, model settings, API keys, or logs.
+
+## Local Development
+
+Install frontend dependencies:
+
 ```bash
-./start.sh
+cd frontend
+npm install
 ```
 
-**Option 2: Run manually**
+Install backend dependencies:
 
-Terminal 1 (Backend):
 ```bash
-uv run python -m backend.main
+python -m pip install -r backend/requirements.txt
 ```
 
-Terminal 2 (Frontend):
+Run the Next.js frontend:
+
 ```bash
 cd frontend
 npm run dev
 ```
 
-Then open http://localhost:5173 in your browser.
+Run the backend:
 
-## Tech Stack
+```bash
+python -m uvicorn backend.main:app --host 0.0.0.0 --port 8001 --reload
+```
 
-- **Backend:** FastAPI (Python 3.10+), async httpx, OpenRouter API
-- **Frontend:** React + Vite, react-markdown for rendering
-- **Storage:** JSON files in `data/conversations/`
-- **Package Management:** uv for Python, npm for JavaScript
+Local app URL:
+
+```text
+http://localhost:3000
+```
+
+## Storage
+
+- Production: Neon Postgres via `DATABASE_URL`.
+- Local fallback: JSON files under `data/conversations/` when `DATABASE_URL` is not set.
+- User OpenRouter API keys are encrypted before being stored in Postgres.
+
+## Stack
+
+- Frontend: Next.js, React
+- Auth: Auth.js with Google OAuth
+- Backend: FastAPI
+- Database: Neon Postgres
+- LLM provider: OpenRouter
